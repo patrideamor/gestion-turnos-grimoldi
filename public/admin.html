@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Lic. Gabriela Grimoldi</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Modal de Login Seguro -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <h2>Acceso Restringido</h2>
+            <p style="margin-bottom: 20px; color: var(--text-secondary);">Ingrese la contraseña de administración</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="password" id="adminPassword" required placeholder="Contraseña">
+                </div>
+                <button type="submit" class="btn-primary">Ingresar</button>
+            </form>
+        </div>
+    </div>
+
+    <header>
+        <h1>Panel de Gestión | Lic. Gabriela Grimoldi</h1>
+        <div style="display: flex; gap: 10px;">
+            <button id="btnDirectory" class="nav-btn" style="background: var(--success);">Directorio Fichas</button>
+            <a href="index.html" class="nav-btn">Volver al Turnero</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Calendario Semanal -->
+        <div class="card">
+            <div class="calendar-controls">
+                <button id="prevWeek" class="nav-btn" style="padding: 6px 12px;">← Semana Anterior</button>
+                <h3 id="currentWeekLabel" style="margin: 0;">Semana Actual</h3>
+                <button id="nextWeek" class="nav-btn" style="padding: 6px 12px;">Semana Siguiente →</button>
+            </div>
+            <div class="week-grid" id="weekGridContainer">
+                <!-- Generado dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Tabla Cronológica de Turnos -->
+        <div class="card">
+            <h3>Listado Cronológico de Turnos</h3>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha y Hora</th>
+                            <th>Paciente</th>
+                            <th>Teléfono</th>
+                            <th>Estado</th>
+                            <th>Acciones (Ficha / WhatsApp / Cancelar / Eliminar)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentsTableBody">
+                        <!-- Generado dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Ficha de Paciente -->
+    <div id="patientModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="modalPatientTitle">Ficha Clínica / Notas</h3>
+            <form id="patientForm">
+                <div class="form-group">
+                    <label>Nombre y Apellido</label>
+                    <input type="text" id="modalPatientName" required>
+                </div>
+                <div class="form-group">
+                    <label>Teléfono (Clave)</label>
+                    <input type="text" id="modalPatientPhone" readonly style="background: #f1f5f9;">
+                </div>
+                <div class="form-group">
+                    <label>Edad</label>
+                    <input type="number" id="modalPatientAge">
+                </div>
+                <div class="form-group">
+                    <label>Notas Clínicas / Historial de Visitas</label>
+                    <textarea id="modalPatientNotes" rows="4" placeholder="Observaciones psicopedagógicas..."></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn-primary">Guardar Cambios</button>
+                    <button type="button" id="closePatientModal" class="nav-btn" style="background: var(--text-secondary); width: 100%;">Cerrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Directorio General de Pacientes -->
+    <div id="directoryModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>Directorio Centralizado de Pacientes</h3>
+                <button type="button" id="closeDirectoryModal" class="nav-btn" style="background: var(--text-secondary);">Cerrar</button>
+            </div>
+            <div id="directoryContent">
+                <!-- Listado completo de pacientes -->
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
