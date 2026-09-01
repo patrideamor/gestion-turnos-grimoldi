@@ -6,10 +6,9 @@
     <title>Panel Admin - Lic. Gabriela Grimoldi</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
-    <!-- MODAL AUTENTICACIÓN ADMIN (PIN 2782) -->
     <div id="authModal" class="modal-overlay">
         <div class="modal-card" style="text-align: center;">
             <i class="fa-solid fa-lock" style="font-size: 2.5rem; color: var(--color-primary); margin-bottom: 15px;"></i>
@@ -24,7 +23,6 @@
         </div>
     </div>
 
-    <!-- CONTENIDO ADMIN -->
     <div id="adminContent" class="app-container hidden">
         <header class="admin-header">
             <div class="brand-info">
@@ -33,7 +31,7 @@
             </div>
             <nav class="header-nav">
                 <button id="btnConfigSchedules" class="btn-nav btn-nav-outline"><i class="fa-solid fa-sliders"></i> Horarios</button>
-                <a href="index.html" class="btn-nav btn-nav-primary"><i class="fa-solid fa-arrow-right-from-bracket"></i> Turnero Público</a>
+                <a href="/" class="btn-nav btn-nav-primary"><i class="fa-solid fa-arrow-right-from-bracket"></i> Turnero Público</a>
             </nav>
         </header>
 
@@ -54,7 +52,7 @@
                 <thead>
                     <tr>
                         <th>Fecha / Hora</th>
-                        <th>Paciente (Teléfono)</th>
+                        <th>Paciente (Clave Tel)</th>
                         <th>Estado</th>
                         <th style="text-align: right;">Acciones de Gestión</th>
                     </tr>
@@ -66,7 +64,6 @@
         <div id="calendarView" class="grid-calendar hidden"></div>
     </div>
 
-    <!-- FICHA CLÍNICA DRAWER -->
     <div id="patientDrawer" class="drawer-overlay hidden">
         <div class="drawer-container">
             <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--color-surface-subtle);">
@@ -75,7 +72,7 @@
             </div>
             <form id="patientForm" style="margin-top: 15px;">
                 <div class="form-group">
-                    <label>Teléfono (Clave Primaria Relacional)</label>
+                    <label>Teléfono (Clave Primaria)</label>
                     <input type="text" id="drawerPhone" readonly style="background: var(--color-bg);">
                 </div>
                 <div class="form-group">
@@ -90,7 +87,7 @@
                     <label>Notas Clínicas / Observaciones</label>
                     <textarea id="drawerNotes" rows="3"></textarea>
                 </div>
-                <button type="submit" class="btn-nav btn-nav-primary" style="margin-top: 15px; width: 100%; justify-content: center;">Guardar Cambios Relacionales</button>
+                <button type="submit" class="btn-nav btn-nav-primary" style="margin-top: 15px; width: 100%; justify-content: center;">Guardar Cambios</button>
             </form>
             <div style="margin-top: 25px;">
                 <h4 style="font-size:0.9rem; color:var(--color-primary); margin-bottom: 10px;">Historial Completo de Turnos</h4>
@@ -99,7 +96,6 @@
         </div>
     </div>
 
-    <!-- MODAL CARGA MANUAL -->
     <div id="manualAppointmentModal" class="modal-overlay hidden">
         <div class="modal-card">
             <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-calendar-plus"></i> Agendar Turno Manual</h3>
@@ -127,7 +123,6 @@
         </div>
     </div>
 
-    <!-- MODAL CONFIGURACIÓN DE HORARIOS -->
     <div id="schedulesModal" class="modal-overlay hidden">
         <div class="modal-card" style="max-width: 550px;">
             <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-sliders"></i> Configurar Bloques Horarios</h3>
@@ -140,8 +135,6 @@
             </form>
         </div>
     </div>
-
-    <!-- FIREBASE SDK v10 & LÓGICA FRONTEND -->
-    <script type="module" src="js/admin.js"></script>
+    <script src="/js/admin.js"></script>
 </body>
 </html>

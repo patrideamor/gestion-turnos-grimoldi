@@ -1,14 +1,6 @@
 const express = require('express');
 const session = require('express-session');
 const path = require('path');
-const mongoose = require('mongoose');
-
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://admin:clave2026@cluster.mongodb.net/turnos?retryWrites=true&w=majority";
-
-// Conexión a la base de datos virtual MongoDB Atlas
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ Conexión exitosa a MongoDB Atlas'))
-  .catch((err) => console.error('❌ Error conectando a MongoDB Atlas:', err));
 
 const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
@@ -35,10 +27,6 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 app.listen(PORT, () => {
-  console.log(`Servidor activo corriendo en http://localhost:${PORT}`);
+  console.log(`Servidor activo corriendo en el puerto ${PORT}`);
 });

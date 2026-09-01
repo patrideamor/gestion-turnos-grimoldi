@@ -6,7 +6,7 @@
     <title>Reserva de Turnos - Lic. Gabriela Grimoldi</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
     <div class="app-container">
@@ -16,10 +16,9 @@
                 <span class="badge-role"><i class="fa-solid fa-calendar-check"></i> Reserva de Turnos Online</span>
             </div>
             <nav class="header-nav">
-                <a href="admin.html" class="btn-nav btn-nav-outline"><i class="fa-solid fa-user-gear"></i> Acceso Admin</a>
+                <a href="/admin" class="btn-nav btn-nav-outline"><i class="fa-solid fa-user-gear"></i> Acceso Admin</a>
             </nav>
         </header>
-
         <main class="table-card" style="padding: 30px; max-width: 600px; margin: 0 auto;">
             <h2 style="font-size: 1.2rem; margin-bottom: 20px; color: var(--color-primary); text-align: center;">Solicitar Turno</h2>
             <form id="publicBookingForm">
@@ -50,100 +49,73 @@
             <div id="bookingResponse" class="hidden" style="margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 0.9rem;"></div>
         </main>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateInput = document.getElementById('bookingDate');
+            const timeSelect = document.getElementById('bookingTime');
+            const form = document.getElementById('publicBookingForm');
+            const responseDiv = document.getElementById('bookingResponse');
+            let config = {};
+            fetch('/api/config').then(res => res.json()).then(data => config = data);
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, doc, getDoc, setDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+            dateInput.addEventListener('change', async () => {
+                const dateVal = dateInput.value;
+                if (!dateVal) return;
+                const selectedDate = new Date(dateVal + 'T00:00:00');
+                const dayOfWeek = selectedDate.getDay();
+                const allowedTimes = config.schedules ? config.schedules[dayOfWeek] || [] : [];
+                timeSelect.innerHTML = '';
+                if (allowedTimes.length === 0) {
+                    timeSelect.innerHTML = '<option value="">Sin horarios de atención este día</option>';
+                    return;
+                }
+                const res = await fetch('/api/appointments');
+                const appointments = await res.json();
+                const takenTimes = appointments
+                    .filter(a => a.date === dateVal && a.status !== 'Cancelado')
+                    .map(a => a.time);
+                const freeTimes = allowedTimes.filter(t => !takenTimes.includes(t));
+                if (freeTimes.length === 0) {
+                    timeSelect.innerHTML = '<option value="">No hay turnos disponibles para esta fecha</option>';
+                } else {
+                    timeSelect.innerHTML = '<option value="">Seleccione un horario</option>';
+                    freeTimes.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t;
+                        opt.textContent = `${t} hs`;
+                        timeSelect.appendChild(opt);
+                    });
+                }
+            });
 
-        // REEMPLAZAR CON TU CONFIGURACIÓN DE FIREBASE
-        const firebaseConfig = {
-            apiKey: "TU_API_KEY",
-            authDomain: "TU_PROJECT_ID.firebaseapp.com",
-            projectId: "TU_PROJECT_ID",
-            storageBucket: "TU_PROJECT_ID.appspot.com",
-            messagingSenderId: "TU_SENDER_ID",
-            appId: "TU_APP_ID"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        const dateInput = document.getElementById('bookingDate');
-        const timeSelect = document.getElementById('bookingTime');
-        const form = document.getElementById('publicBookingForm');
-        const responseDiv = document.getElementById('bookingResponse');
-
-        dateInput.addEventListener('change', async () => {
-            const dateVal = dateInput.value;
-            if (!dateVal) return;
-            const selectedDate = new Date(dateVal + 'T00:00:00');
-            const dayOfWeek = selectedDate.getDay();
-
-            // Obtener Horarios Permitidos
-            const configDoc = await getDoc(doc(db, "config", "schedules"));
-            const schedules = configDoc.exists() ? configDoc.data().schedules : {};
-            const allowedTimes = schedules[dayOfWeek] || [];
-
-            timeSelect.innerHTML = '';
-            if (allowedTimes.length === 0) {
-                timeSelect.innerHTML = '<option value="">Sin horarios de atención este día</option>';
-                return;
-            }
-
-            // Filtrar Turnos Ocupados
-            const q = query(collection(db, "appointments"), where("date", "==", dateVal), where("status", "!=", "Cancelado"));
-            const querySnap = await getDocs(q);
-            const takenTimes = [];
-            querySnap.forEach(d => takenTimes.push(d.data().time));
-
-            const freeTimes = allowedTimes.filter(t => !takenTimes.includes(t));
-
-            if (freeTimes.length === 0) {
-                timeSelect.innerHTML = '<option value="">No hay turnos disponibles para esta fecha</option>';
-            } else {
-                timeSelect.innerHTML = '<option value="">Seleccione un horario</option>';
-                freeTimes.forEach(t => {
-                    const opt = document.createElement('option');
-                    opt.value = t;
-                    opt.textContent = `${t} hs`;
-                    timeSelect.appendChild(opt);
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const payload = {
+                    name: document.getElementById('bookingName').value,
+                    phone: document.getElementById('bookingPhone').value,
+                    age: document.getElementById('bookingAge').value,
+                    date: dateInput.value,
+                    time: timeSelect.value
+                };
+                const res = await fetch('/api/appointments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
-            }
-        });
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const phone = document.getElementById('bookingPhone').value.trim();
-            const name = document.getElementById('bookingName').value;
-            const age = document.getElementById('bookingAge').value;
-            const date = dateInput.value;
-            const time = timeSelect.value;
-
-            try {
-                // Sincronizar Ficha Paciente
-                await setDoc(doc(db, "patients", phone), { name, phone, age }, { merge: true });
-
-                // Crear Turno
-                await setDoc(doc(collection(db, "appointments")), {
-                    patientPhone: phone,
-                    patientName: name,
-                    date, time,
-                    status: "Pendiente",
-                    createdAt: new Date().toISOString()
-                });
-
+                const data = await res.json();
                 responseDiv.classList.remove('hidden');
-                responseDiv.style.backgroundColor = 'var(--badge-confirmed-bg)';
-                responseDiv.style.color = 'var(--badge-confirmed-text)';
-                responseDiv.innerText = '¡Turno registrado con éxito en estado Pendiente!';
-                form.reset();
-                timeSelect.innerHTML = '<option value="">Seleccione una fecha primero</option>';
-            } catch (err) {
-                responseDiv.classList.remove('hidden');
-                responseDiv.style.backgroundColor = '#FFEBEE';
-                responseDiv.style.color = '#C62828';
-                responseDiv.innerText = 'Error al procesar la reserva';
-            }
+                if (data.success) {
+                    responseDiv.style.backgroundColor = 'var(--badge-confirmed-bg)';
+                    responseDiv.style.color = 'var(--badge-confirmed-text)';
+                    responseDiv.innerText = '¡Turno registrado con éxito en estado Pendiente!';
+                    form.reset();
+                    timeSelect.innerHTML = '<option value="">Seleccione una fecha primero</option>';
+                } else {
+                    responseDiv.style.backgroundColor = '#FFEBEE';
+                    responseDiv.style.color = '#C62828';
+                    responseDiv.innerText = data.message || 'Error al agendar el turno';
+                }
+            });
         });
     </script>
 </body>
