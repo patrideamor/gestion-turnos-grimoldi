@@ -1,60 +1,49 @@
-<!DOCTYPE html>  
-<html lang="es">  
-<head>  
-    <meta charset="UTF-8">  
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-    <title>Reserva de Turno - Lic. Gabriela Grimoldi</title>  
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">  
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">  
-    <!-- Utilización de rutas relativas puras para compatibilidad total en GitHub Pages -->
-    <link rel="stylesheet" href="css/styles.css">  
-</head>  
-<body>  
-    <div class="app-container">  
-        <header class="admin-header">  
-            <div class="brand-info">  
-                <h1>Lic. Gabriela Grimoldi</h1>  
-                <span class="badge-role">Reserva de Turnos en Línea</span>  
-            </div>  
-            <nav class="header-nav">  
-                <a href="admin.html" class="btn-nav btn-nav-outline"><i class="fa-solid fa-lock"></i> Panel Profesional</a>  
-            </nav>  
-        </header>  
-  
-        <div style="max-width: 600px; margin: 0 auto; background: var(--color-surface); padding: 30px; border-radius: 16px; border: 1px solid var(--color-border);">  
-            <h2 style="font-size: 1.2rem; margin-bottom: 20px; color: var(--color-primary-dark); text-align: center;">Solicitar Turno Consultorio</h2>  
-            <form id="bookingForm">  
-                <div class="form-group">  
-                    <label>Nombre y Apellido</label>  
-                    <input type="text" id="patientName" required placeholder="Ej. Maria Gonzalez">  
-                </div>  
-                <div class="form-group">  
-                    <label>Teléfono Celular (Clave de seguimiento)</label>  
-                    <input type="tel" id="patientPhone" required placeholder="Ej. 1198765432">  
-                </div>  
-                <div class="form-group">  
-                    <label>Edad</label>  
-                    <input type="number" id="patientAge" placeholder="Ej. 34">  
-                </div>  
-                <div class="form-group">  
-                    <label>Seleccionar Fecha</label>  
-                    <input type="date" id="bookingDate" required>  
-                </div>  
-                <div class="form-group">  
-                    <label>Horarios Disponibles</label>  
-                    <select id="bookingTime" required style="width:100%; padding:10px; border-radius:8px; border: 1px solid var(--color-border); background: var(--color-bg);">  
-                        <option value="">-- Seleccione primero una fecha --</option>  
-                    </select>  
-                </div>  
-                <button type="submit" class="btn-nav btn-nav-primary" style="width: 100%; justify-content: center; margin-top: 15px; padding: 12px;">Solicitar Reserva</button>  
-            </form>  
-            <div id="bookingSuccess" class="hidden" style="margin-top: 20px; padding: 15px; background: var(--status-confirmado-bg); color: var(--status-confirmado-text); border-radius: 8px; text-align: center;">  
-                <i class="fa-solid fa-circle-check" style="font-size: 1.5rem; margin-bottom: 8px;"></i>  
-                <p><strong>¡Turno solicitado con éxito!</strong> Su turno ha quedado registrado en estado <strong>Pendiente</strong>. La Lic. Gabriela Grimoldi confirmará su turno a la brevedad vía WhatsApp.</p>  
-            </div>  
-        </div>  
-    </div>  
-  
-    <script type="module" src="js/main.js"></script>  
-</body>  
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- Declaración del conjunto de caracteres para admitir tildes y ñ -->
+    <meta charset="UTF-8">
+    
+    <!-- Configuración para que la página sea responsiva (adaptable a celulares) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Título que aparece en la pestaña del navegador y ayuda al SEO -->
+    <title>Mi Plataforma Web - Inicio</title>
+    
+    <!-- Vinculación con el archivo de estilos CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Encabezado principal del sitio -->
+    <header class="header-principal">
+        <div class="contenedor">
+            <h1 class="logo">MiPlataforma</h1>
+            <nav class="navegacion">
+                <ul>
+                    <li><a href="#inicio">Inicio</a></li>
+                    <li><a href="#servicios">Servicios</a></li>
+                    <li><a href="#contacto">Contacto</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="contenedor">
+        <section class="tarjeta-hero">
+            <h2>Bienvenido a la plataforma</h2>
+            <p>Este es un ejemplo de contenido estructurado y estilizado correctamente con HTML y CSS.</p>
+            <button class="boton-primario">Comenzar ahora</button>
+        </section>
+    </main>
+
+    <!-- Pie de página -->
+    <footer class="footer-principal">
+        <div class="contenedor">
+            <p>&copy; 2026 MiPlataforma. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+</body>
 </html>
