@@ -219,9 +219,9 @@ body {
 }
 
 .btn-action-circle.ficha { background-color: #E8EAF6; color: #3F51B5; }
-.btn-action-circle.gcalendar { background-color: #FEF3D6; color: #F5B041; }
 .btn-action-circle.confirm { background-color: #E8F5E9; color: #2E7D32; }
 .btn-action-circle.reminder { background-color: #E1F5FE; color: #0288D1; }
+.btn-action-circle.gcal { background-color: #FFF8E1; color: #F57F17; }
 .btn-action-circle.cancel { background-color: #FFF3E0; color: #E65100; }
 .btn-action-circle.delete { background-color: #FFEBEE; color: #C62828; }
 
@@ -332,10 +332,26 @@ body {
     transition: var(--transition);
 }
 
-.grid-card-slot.disponible { cursor: pointer; }
-.grid-card-slot.disponible:hover { border-color: var(--color-primary); background-color: var(--color-accent-light); }
-.grid-card-slot.ocupado { border: 1px solid #E2D8CD; background: #FFFFFF; box-shadow: var(--shadow-sm); }
-.grid-card-slot.no-atiende { background: #F2EFE9; border: none; opacity: 0.6; }
+.grid-card-slot.disponible {
+    cursor: pointer;
+}
+
+.grid-card-slot.disponible:hover {
+    border-color: var(--color-primary);
+    background-color: var(--color-accent-light);
+}
+
+.grid-card-slot.ocupado {
+    border: 1px solid #E2D8CD;
+    background: #FFFFFF;
+    box-shadow: var(--shadow-sm);
+}
+
+.grid-card-slot.no-atiende {
+    background: #F2EFE9;
+    border: none;
+    opacity: 0.6;
+}
 
 /* MODALES Y DRAWER */
 .modal-overlay {
@@ -386,7 +402,10 @@ body {
     overflow-y: auto;
 }
 
-.form-group { margin-top: 16px; }
+.form-group {
+    margin-top: 16px;
+}
+
 .form-group label {
     display: block;
     font-size: 0.8rem;

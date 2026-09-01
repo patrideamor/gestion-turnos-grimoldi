@@ -1,36 +1,9 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { 
-    getFirestore, collection, doc, getDoc, setDoc, getDocs, updateDoc, deleteDoc, query, where, onSnapshot 
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-// REEMPLAZAR CON TU CONFIGURACIÓN DE FIREBASE
-const firebaseConfig = {
-  apiKey: "AIzaSyCBIiWsDLM5F5x66eEHfIbFg5TDWniOt2E",
-  authDomain: "sistema-turnos-gabriela.firebaseapp.com",
-  projectId: "sistema-turnos-gabriela",
-  storageBucket: "sistema-turnos-gabriela.firebasestorage.app",
-  messagingSenderId: "1057274652170",
-  appId: "1:1057274652170:web:c79bb817f05308874221f3"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const DEFAULT_SCHEDULES = {
-    "1": ["08:00", "09:00", "18:00", "19:00", "20:00"],
-    "2": ["15:00", "16:00", "17:00", "18:00"],
-    "3": ["08:00", "09:00", "10:00", "18:00", "19:00"],
-    "4": ["14:00", "15:00", "16:00", "17:00", "18:00"],
-    "5": ["14:00", "15:00", "16:00", "17:00"],
-    "6": [], "0": []
-};
-
-let currentWeekStart = getMonday(new Date());
-let appointments = [];
-let schedulesConfig = DEFAULT_SCHEDULES;
-let activeView = 'table';
-
 document.addEventListener('DOMContentLoaded', () => {
+    let currentWeekStart = getMonday(new Date());
+    let appointments = [];
+    let config = {};
+    let activeView = 'table';
+
     const authModal = document.getElementById('authModal');
     const loginForm = document.getElementById('loginForm');
     const pinInput = document.getElementById('pinInput');
@@ -44,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const weekLabel = document.getElementById('weekLabel');
     const btnPrevWeek = document.getElementById('btnPrevWeek');
     const btnNextWeek = document.getElementById('btnNextWeek');
+
+    const tableBody = document.getElementById('tableBody');
 
     const patientDrawer = document.getElementById('patientDrawer');
     const btnCloseDrawer = document.getElementById('btnCloseDrawer');
@@ -59,327 +34,350 @@ document.addEventListener('DOMContentLoaded', () => {
     const schedulesForm = document.getElementById('schedulesForm');
     const schedulesInputsContainer = document.getElementById('schedulesInputsContainer');
 
-    // Validación PIN 2782 Local
-    loginForm.addEventListener('submit', (e) => {
+    checkAuth();
+
+    async function checkAuth() {
+        try {
+            const res = await fetch('/auth/status');
+            const data = await res.json();
+            if (data.isAdmin) {
+                authModal.classList.add('hidden');
+                adminContent.classList.remove('hidden');
+                initAdmin();
+            } else {
+                authModal.classList.remove('hidden');
+                adminContent.classList.add('hidden');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (pinInput.value === "2782") {
+        const res = await fetch('/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin: pinInput.value })
+        });
+        const data = await res.json();
+        if (data.success) {
             authModal.classList.add('hidden');
             adminContent.classList.remove('hidden');
             initAdmin();
         } else {
-            alert("Contraseña incorrecta");
-            pinInput.value = '';
+            alert(data.message);
         }
     });
 
     async function initAdmin() {
-        listenToSchedules();
-        listenToAppointments();
-        renderWeekLabel();
+        await loadConfig();
+        await loadAppointments();
     }
 
-    function listenToSchedules() {
-        onSnapshot(doc(db, "config", "schedules"), (docSnap) => {
-            if (docSnap.exists()) {
-                schedulesConfig = docSnap.data().schedules;
-            } else {
-                setDoc(doc(db, "config", "schedules"), { schedules: DEFAULT_SCHEDULES });
-            }
-            renderCurrentView();
-        });
+    async function loadConfig() {
+        const res = await fetch('/api/config');
+        config = await res.json();
     }
 
-    function listenToAppointments() {
-        onSnapshot(collection(db, "appointments"), (snapshot) => {
-            appointments = [];
-            snapshot.forEach(docSnap => {
-                appointments.push({ id: docSnap.id, ...docSnap.data() });
-            });
-            // Ordenamiento Estricto Ascendente por Fecha y Hora
-            appointments.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
-            renderCurrentView();
-        });
+    async function loadAppointments() {
+        const res = await fetch('/api/appointments');
+        appointments = await res.json();
+        render();
     }
 
-    // Swappers de Vistas
-    btnViewTable.addEventListener('click', () => {
-        activeView = 'table';
-        btnViewTable.classList.add('active');
-        btnViewCalendar.classList.remove('active');
-        tableView.classList.remove('hidden');
-        calendarView.classList.add('hidden');
-        renderCurrentView();
-    });
-
-    btnViewCalendar.addEventListener('click', () => {
-        activeView = 'calendar';
-        btnViewCalendar.classList.add('active');
-        btnViewTable.classList.remove('active');
-        calendarView.classList.remove('hidden');
-        tableView.classList.add('hidden');
-        renderCurrentView();
-    });
-
-    btnPrevWeek.addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-        renderWeekLabel();
-        renderCurrentView();
-    });
-
-    btnNextWeek.addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-        renderWeekLabel();
-        renderCurrentView();
-    });
-
-    function renderCurrentView() {
-        if (activeView === 'table') renderTable();
-        else renderCalendar();
+    function render() {
+        updateWeekLabel();
+        if (activeView === 'table') {
+            renderTable();
+        } else {
+            renderCalendar();
+        }
     }
 
     function renderTable() {
-        const tableBody = document.getElementById('tableBody');
         tableBody.innerHTML = '';
         if (appointments.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:var(--color-text-muted);">No hay turnos registrados</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--color-text-muted);">No hay turnos registrados</td></tr>`;
             return;
         }
 
         appointments.forEach(app => {
             const tr = document.createElement('tr');
-            const [year, month, day] = app.date.split('-');
-            const formattedDate = `${day}/${month}/${year}`;
-
-            let statusBadge = `<span class="badge-status pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>`;
-            if (app.status === 'Confirmado') statusBadge = `<span class="badge-status confirmado"><i class="fa-solid fa-circle-check"></i> Confirmado</span>`;
-            else if (app.status === 'Cancelado') statusBadge = `<span class="badge-status cancelado"><i class="fa-solid fa-ban"></i> Cancelado</span>`;
-
-            const confirmMsg = encodeURIComponent(`Hola *${app.patientName}*, te escribimos para confirmarle su turno reservado para el día *${formattedDate}* a las *${app.time}* hs con la *Lic. Gabriela Grimoldi*. ¡Te esperamos!`);
-            const reminderMsg = encodeURIComponent(`Hola *${app.patientName}*, le recordamos su turno agendado para el día *${formattedDate}* a las *${app.time}* hs con la *Lic. Gabriela Grimoldi*. ¡Te esperamos!`);
-            const cleanPhone = app.patientPhone.replace(/[^0-9]/g, '');
-
-            const gCalUrl = getGoogleCalendarUrl(app.patientName, app.date, app.time);
+            const [y, m, d] = app.date.split('-');
+            const formattedDate = `${d}/${m}/${y}`;
+            const isPending = app.status === 'Pendiente';
 
             tr.innerHTML = `
-                <td><strong>${formattedDate}</strong><br><small style="color: var(--color-text-muted);">${app.time} hs</small></td>
-                <td><div class="patient-cell"><span class="patient-name">${app.patientName}</span><span class="patient-phone"><i class="fa-brands fa-whatsapp"></i> ${app.patientPhone}</span></div></td>
-                <td>${statusBadge}</td>
+                <td>
+                    <strong>${formattedDate}</strong><br>
+                    <small style="color: var(--color-text-muted);">${app.time} hs</small>
+                </td>
+                <td>
+                    <div class="patient-cell">
+                        <span class="patient-name">${app.patientName}</span>
+                        <span class="patient-phone"><i class="fa-brands fa-whatsapp"></i> ${app.patientPhone}</span>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge-status ${app.status.toLowerCase()}">
+                        <i class="fa-solid ${isPending ? 'fa-clock' : 'fa-circle-check'}"></i> ${app.status}
+                    </span>
+                </td>
                 <td>
                     <div class="action-group" style="justify-content: flex-end;">
-                        <button class="btn-action-circle ficha" data-id="${app.patientPhone}" title="Ficha / Notas"><i class="fa-solid fa-notes-medical"></i></button>
-                        <a class="btn-action-circle gcalendar" href="${gCalUrl}" target="_blank" title="Agregar a Google Calendar"><i class="fa-solid fa-calendar-plus"></i></a>
-                        <a class="btn-action-circle confirm" href="https://wa.me/${cleanPhone}?text=${confirmMsg}" target="_blank" data-id="${app.id}" title="Confirmar por WA"><i class="fa-solid fa-check"></i></a>
-                        <a class="btn-action-circle reminder" href="https://wa.me/${cleanPhone}?text=${reminderMsg}" target="_blank" title="Enviar Recordatorio"><i class="fa-solid fa-bell"></i></a>
-                        <button class="btn-action-circle cancel" data-id="${app.id}" title="Cancelar Turno"><i class="fa-solid fa-ban"></i></button>
-                        <button class="btn-action-circle delete" data-id="${app.id}" title="Eliminar Turno"><i class="fa-solid fa-trash"></i></button>
+                        <button class="btn-action-circle ficha" onclick="openDrawer('${app.patientPhone}')" title="Ficha Clínica"><i class="fa-solid fa-notes-medical"></i></button>
+                        <button class="btn-action-circle confirm" onclick="confirmAppointment('${app.id}', '${app.patientName}', '${formattedDate}', '${app.time}', '${app.patientPhone}')" title="Confirmar por WhatsApp"><i class="fa-solid fa-check"></i></button>
+                        <button class="btn-action-circle reminder" onclick="sendReminder('${app.patientName}', '${formattedDate}', '${app.time}', '${app.patientPhone}')" title="Recordatorio"><i class="fa-solid fa-bell"></i></button>
+                        <button class="btn-action-circle gcal" onclick="addToGoogleCalendar('${app.id}')" title="Agregar a Google Calendar"><i class="fa-solid fa-calendar-plus"></i></button>
+                        <button class="btn-action-circle cancel" onclick="cancelAppointment('${app.id}')" title="Cancelar Turno"><i class="fa-solid fa-ban"></i></button>
+                        <button class="btn-action-circle delete" onclick="deleteAppointment('${app.id}')" title="Eliminar Turno"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </td>
             `;
-
-            // Event Listeners de Botonera
-            tr.querySelector('.ficha').onclick = () => openPatientDrawer(app.patientPhone);
-            tr.querySelector('.confirm').onclick = () => updateStatus(app.id, 'Confirmado');
-            tr.querySelector('.cancel').onclick = () => updateStatus(app.id, 'Cancelado');
-            tr.querySelector('.delete').onclick = () => deleteAppointment(app.id);
-
             tableBody.appendChild(tr);
         });
     }
 
     function renderCalendar() {
         calendarView.innerHTML = '';
-        const weekDays = getWeekDays(currentWeekStart);
         const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-
-        calendarView.appendChild(createDiv('grid-header', 'Hora'));
-        weekDays.slice(0, 5).forEach((d, idx) => {
-            calendarView.appendChild(createDiv('grid-header', `${dayNames[idx]} ${d.getDate()}/${d.getMonth()+1}`));
-        });
-
-        const allTimes = new Set();
-        Object.values(schedulesConfig || {}).forEach(arr => arr.forEach(t => allTimes.add(t)));
-        const sortedTimes = Array.from(allTimes).sort();
-
-        sortedTimes.forEach(time => {
-            calendarView.appendChild(createDiv('grid-time-slot', time));
-
-            weekDays.slice(0, 5).forEach((d) => {
-                const dayNum = d.getDay();
-                const dateStr = formatDateISO(d);
-                const allowedTimes = schedulesConfig[dayNum] || [];
-
-                if (!allowedTimes.includes(time)) {
-                    calendarView.appendChild(createDiv('grid-card-slot no-atiende', '<span style="font-size:0.75rem; color:#A0958B; text-align:center;">Sin atención</span>'));
-                    return;
-                }
-
-                const existingApp = appointments.find(a => a.date === dateStr && a.time === time && a.status !== 'Cancelado');
-
-                if (existingApp) {
-                    const slot = createDiv('grid-card-slot ocupado', `
-                        <div style="font-size:0.82rem; font-weight:700;">${existingApp.patientName}</div>
-                        <div class="action-group" style="margin-top:6px;">
-                            <button class="btn-action-circle ficha" style="width:28px; height:28px; font-size:0.75rem;"><i class="fa-solid fa-notes-medical"></i></button>
-                            <button class="btn-action-circle cancel" style="width:28px; height:28px; font-size:0.75rem;"><i class="fa-solid fa-ban"></i></button>
-                        </div>
-                    `);
-                    slot.querySelector('.ficha').onclick = () => openPatientDrawer(existingApp.patientPhone);
-                    slot.querySelector('.cancel').onclick = () => updateStatus(existingApp.id, 'Cancelado');
-                    calendarView.appendChild(slot);
-                } else {
-                    const slot = createDiv('grid-card-slot disponible', `
-                        <span style="font-size:0.78rem; color:var(--color-text-muted);"><i class="fa-solid fa-plus"></i> Disponible</span>
-                        <span style="font-size:0.72rem; color:var(--color-primary); font-weight:600;">Agendar</span>
-                    `);
-                    slot.onclick = () => openManualModal(dateStr, time);
-                    calendarView.appendChild(slot);
-                }
-            });
-        });
-    }
-
-    // Google Calendar Link Generator
-    function getGoogleCalendarUrl(patientName, dateStr, timeStr) {
-        const [year, month, day] = dateStr.split('-');
-        const [hours, minutes] = timeStr.split(':');
-        const startObj = new Date(year, month - 1, day, hours, minutes);
-        const endObj = new Date(startObj.getTime() + 60 * 60 * 1000);
-        const formatTime = (d) => d.toISOString().replace(/-|:|\.\d\d\d/g, "");
-        const title = encodeURIComponent(`Turno: ${patientName} - Lic. Gabriela Grimoldi`);
-        const details = encodeURIComponent(`Turno asignado para ${patientName}.`);
-        return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatTime(startObj)}/${formatTime(endObj)}&details=${details}`;
-    }
-
-    // Operaciones en Firestore
-    async function updateStatus(id, status) {
-        await updateDoc(doc(db, "appointments", id), { status });
-    }
-
-    async function deleteAppointment(id) {
-        if (confirm('¿Desea eliminar este turno de la base de datos?')) {
-            await deleteDoc(doc(db, "appointments", id));
-        }
-    }
-
-    // Ficha Relacional Actualizable en Cascadas
-    async function openPatientDrawer(phone) {
-        const cleanPhone = phone.trim();
-        const patientDoc = await getDoc(doc(db, "patients", cleanPhone));
         
-        document.getElementById('drawerPhone').value = cleanPhone;
-        if (patientDoc.exists()) {
-            const pData = patientDoc.data();
-            document.getElementById('drawerName').value = pData.name || '';
-            document.getElementById('drawerAge').value = pData.age || '';
-            document.getElementById('drawerNotes').value = pData.notes || '';
-        } else {
-            document.getElementById('drawerName').value = '';
-            document.getElementById('drawerAge').value = '';
-            document.getElementById('drawerNotes').value = '';
-        }
+        calendarView.appendChild(createDiv('grid-header', 'Hora'));
+        dayNames.forEach((name, i) => {
+            const dateObj = new Date(currentWeekStart);
+            dateObj.setDate(dateObj.getDate() + i);
+            const dateStr = formatDate(dateObj);
+            calendarView.appendChild(createDiv('grid-header', `${name}<br><small style="font-weight:400">${dateStr.split('-').reverse().slice(0,2).join('/')}</small>`));
+        });
 
-        const q = query(collection(db, "appointments"), where("patientPhone", "==", cleanPhone));
-        const historySnap = await getDocs(q);
+        const allHours = ["08:00", "09:00", "10:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+
+        allHours.forEach(hour => {
+            calendarView.appendChild(createDiv('grid-time-slot', hour));
+
+            for (let dayIdx = 1; dayIdx <= 5; dayIdx++) {
+                const dayDate = new Date(currentWeekStart);
+                dayDate.setDate(dayDate.getDate() + (dayIdx - 1));
+                const dateStr = formatDate(dayDate);
+
+                const activeSchedules = config.schedules[dayIdx] || [];
+                const isScheduledTime = activeSchedules.includes(hour);
+                const app = appointments.find(a => a.date === dateStr && a.time === hour && a.status !== 'Cancelado');
+
+                const slot = document.createElement('div');
+
+                if (app) {
+                    slot.className = 'grid-card-slot ocupado';
+                    slot.innerHTML = `
+                        <div style="font-size: 0.82rem; font-weight:700;">${app.patientName}</div>
+                        <div class="action-group" style="margin-top: 4px;">
+                            <button class="btn-action-circle ficha" style="width:26px;height:26px;font-size:0.75rem" onclick="openDrawer('${app.patientPhone}')"><i class="fa-solid fa-notes-medical"></i></button>
+                            <button class="btn-action-circle gcal" style="width:26px;height:26px;font-size:0.75rem" onclick="addToGoogleCalendar('${app.id}')"><i class="fa-solid fa-calendar-plus"></i></button>
+                        </div>
+                    `;
+                } else if (isScheduledTime) {
+                    slot.className = 'grid-card-slot disponible';
+                    slot.innerHTML = `<span style="font-size: 0.78rem; color: var(--color-primary); font-weight:600;"><i class="fa-solid fa-plus"></i> Disponible</span>`;
+                    slot.onclick = () => openManualModal(dateStr, hour);
+                } else {
+                    slot.className = 'grid-card-slot no-atiende';
+                    slot.innerHTML = `<span style="font-size: 0.72rem; color: var(--color-text-muted);">Sin atención</span>`;
+                }
+                calendarView.appendChild(slot);
+            }
+        });
+    }
+
+    // Acciones de WhatsApp y Google Calendar
+    window.confirmAppointment = async (id, name, date, time, phone) => {
+        await fetch(`/api/appointments/${id}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'Confirmado' })
+        });
+        const msg = encodeURIComponent(`Hola ${name}, te escribimos para confirmarle su turno reservado para el día ${date} a las ${time} hs con la Lic. Gabriela Grimoldi. ¡Te esperamos!`);
+        window.open(`https://wa.me/${cleanPhone(phone)}?text=${msg}`, '_blank');
+        loadAppointments();
+    };
+
+    window.sendReminder = (name, date, time, phone) => {
+        const msg = encodeURIComponent(`Hola ${name}, le recordamos su turno agendado para el día ${date} a las ${time} hs con la Lic. Gabriela Grimoldi. ¡Te esperamos!`);
+        window.open(`https://wa.me/${cleanPhone(phone)}?text=${msg}`, '_blank');
+    };
+
+    window.addToGoogleCalendar = async (id) => {
+        const res = await fetch(`/api/appointments/${id}/gcal`);
+        const data = await res.json();
+        if (data.success) {
+            window.open(data.url, '_blank');
+        }
+    };
+
+    window.cancelAppointment = async (id) => {
+        if (!confirm('¿Cancelar este turno?')) return;
+        await fetch(`/api/appointments/${id}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'Cancelado' })
+        });
+        loadAppointments();
+    };
+
+    window.deleteAppointment = async (id) => {
+        if (!confirm('¿Eliminar permanentemente este turno?')) return;
+        await fetch(`/api/appointments/${id}`, { method: 'DELETE' });
+        loadAppointments();
+    };
+
+    // Ficha del Paciente Slide-Over
+    window.openDrawer = async (phone) => {
+        const res = await fetch(`/api/patients/${phone}`);
+        const data = await res.json();
+        if (!data.patient) return;
+
+        document.getElementById('drawerPhone').value = data.patient.phone;
+        document.getElementById('drawerName').value = data.patient.name;
+        document.getElementById('drawerAge').value = data.patient.age || '';
+        document.getElementById('drawerNotes').value = data.patient.notes || '';
+
         const historyList = document.getElementById('patientHistoryList');
         historyList.innerHTML = '';
-        historySnap.forEach(docSnap => {
-            const h = docSnap.data();
-            const item = document.createElement('div');
-            item.style.cssText = "padding:10px; background:var(--color-bg); margin-bottom:6px; border-radius:8px; font-size:0.85rem; display:flex; justify-content:space-between;";
-            item.innerHTML = `<span>${h.date} - ${h.time} hs</span><strong>${h.status}</strong>`;
-            historyList.appendChild(item);
+        data.history.forEach(h => {
+            const div = document.createElement('div');
+            div.style.cssText = 'padding:10px; background:var(--color-bg); margin-bottom:6px; border-radius:8px; font-size:0.82rem; display:flex; justify-content:space-between;';
+            div.innerHTML = `<span>${h.date.split('-').reverse().join('/')} - ${h.time} hs</span><strong>${h.status}</strong>`;
+            historyList.appendChild(div);
         });
 
         patientDrawer.classList.remove('hidden');
-    }
+    };
 
-    btnCloseDrawer.addEventListener('click', () => patientDrawer.classList.add('hidden'));
+    btnCloseDrawer.onclick = () => patientDrawer.classList.add('hidden');
 
-    patientForm.addEventListener('submit', async (e) => {
+    patientForm.onsubmit = async (e) => {
         e.preventDefault();
         const phone = document.getElementById('drawerPhone').value;
-        const name = document.getElementById('drawerName').value;
-        const age = document.getElementById('drawerAge').value;
-        const notes = document.getElementById('drawerNotes').value;
-
-        // Guardar o Actualizar Ficha de Paciente
-        await setDoc(doc(db, "patients", phone), { name, phone, age, notes }, { merge: true });
-
-        // Sincronización Relacional en Cascada sobre todas las visitas asociadas al teléfono
-        const q = query(collection(db, "appointments"), where("patientPhone", "==", phone));
-        const querySnap = await getDocs(q);
-        querySnap.forEach(async (docSnap) => {
-            await updateDoc(doc(docSnap.ref.path), { patientName: name });
+        await fetch(`/api/patients/${phone}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: document.getElementById('drawerName').value,
+                age: document.getElementById('drawerAge').value,
+                notes: document.getElementById('drawerNotes').value
+            })
         });
-
         patientDrawer.classList.add('hidden');
-    });
+        loadAppointments();
+    };
 
-    // Carga Manual
+    // Carga Manual de Turnos
     function openManualModal(date, time) {
         document.getElementById('manualDate').value = date;
         document.getElementById('manualTime').value = time;
-        document.getElementById('manualSlotInfo').innerText = `Turno: ${date} a las ${time} hs`;
+        document.getElementById('manualSlotInfo').innerText = `Turno: ${date.split('-').reverse().join('/')} a las ${time} hs`;
         manualModal.classList.remove('hidden');
     }
 
-    btnCancelManual.addEventListener('click', () => manualModal.classList.add('hidden'));
+    btnCancelManual.onclick = () => manualModal.classList.add('hidden');
 
-    manualForm.addEventListener('submit', async (e) => {
+    manualForm.onsubmit = async (e) => {
         e.preventDefault();
-        const date = document.getElementById('manualDate').value;
-        const time = document.getElementById('manualTime').value;
-        const name = document.getElementById('manualName').value;
-        const phone = document.getElementById('manualPhone').value.trim();
-        const age = document.getElementById('manualAge').value;
+        const payload = {
+            date: document.getElementById('manualDate').value,
+            time: document.getElementById('manualTime').value,
+            name: document.getElementById('manualName').value,
+            phone: document.getElementById('manualPhone').value,
+            age: document.getElementById('manualAge').value
+        };
 
-        // Registrar paciente si no existe
-        await setDoc(doc(db, "patients", phone), { name, phone, age }, { merge: true });
-
-        // Crear turno
-        await setDoc(doc(collection(db, "appointments")), {
-            patientPhone: phone,
-            patientName: name,
-            date, time,
-            status: "Pendiente",
-            createdAt: new Date().toISOString()
+        const res = await fetch('/api/appointments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
-
-        manualModal.classList.add('hidden');
-        manualForm.reset();
-    });
-
-    // Editor de Horarios
-    btnConfigSchedules.addEventListener('click', () => {
-        schedulesInputsContainer.innerHTML = '';
-        const dayNames = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-        for (let i = 1; i <= 5; i++) {
-            const div = document.createElement('div');
-            div.className = 'form-group';
-            div.innerHTML = `
-                <label>${dayNames[i-1]}</label>
-                <input type="text" data-day="${i}" value="${(schedulesConfig[i] || []).join(', ')}" placeholder="08:00, 09:00">
-            `;
-            schedulesInputsContainer.appendChild(div);
+        const data = await res.json();
+        if (data.success) {
+            manualModal.classList.add('hidden');
+            manualForm.reset();
+            loadAppointments();
+        } else {
+            alert(data.message);
         }
-        schedulesModal.classList.remove('hidden');
-    });
+    };
 
-    btnCancelSchedules.addEventListener('click', () => schedulesModal.classList.add('hidden'));
+    // Configuración interactiva de Horarios
+    btnConfigSchedules.onclick = () => {
+        schedulesInputsContainer.innerHTML = '';
+        const dayLabels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 
-    schedulesForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const newSchedules = { ...schedulesConfig };
-        schedulesInputsContainer.querySelectorAll('input').forEach(input => {
-            const day = input.getAttribute('data-day');
-            newSchedules[day] = input.value.split(',').map(s => s.trim()).filter(Boolean);
+        dayLabels.forEach((label, idx) => {
+            const dayNum = idx + 1;
+            const currentSlots = (config.schedules[dayNum] || []).join(', ');
+            const group = document.createElement('div');
+            group.className = 'form-group';
+            group.innerHTML = `
+                <label>${label}</label>
+                <input type="text" id="sched_day_${dayNum}" value="${currentSlots}" placeholder="Ej: 08:00, 09:00, 18:00">
+            `;
+            schedulesInputsContainer.appendChild(group);
         });
+        schedulesModal.classList.remove('hidden');
+    };
 
-        await setDoc(doc(db, "config", "schedules"), { schedules: newSchedules });
-        schedulesModal.classList.add('hidden');
-    });
+    btnCancelSchedules.onclick = () => schedulesModal.classList.add('hidden');
 
-    // Utilitarios
+    schedulesForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const newSchedules = { "0": [], "6": [] };
+        for (let dayNum = 1; dayNum <= 5; dayNum++) {
+            const val = document.getElementById(`sched_day_${dayNum}`).value;
+            newSchedules[dayNum] = val.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        }
+
+        const res = await fetch('/api/config/schedules', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ schedules: newSchedules })
+        });
+        const data = await res.json();
+        if (data.success) {
+            config.schedules = data.schedules;
+            schedulesModal.classList.add('hidden');
+            render();
+        }
+    };
+
+    // Vistas y Navegación
+    btnViewTable.onclick = () => {
+        activeView = 'table';
+        btnViewTable.classList.add('active');
+        btnViewCalendar.classList.remove('active');
+        tableView.classList.remove('hidden');
+        calendarView.classList.add('hidden');
+        render();
+    };
+
+    btnViewCalendar.onclick = () => {
+        activeView = 'calendar';
+        btnViewCalendar.classList.add('active');
+        btnViewTable.classList.remove('active');
+        calendarView.classList.remove('hidden');
+        tableView.classList.add('hidden');
+        render();
+    };
+
+    btnPrevWeek.onclick = () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+        render();
+    };
+
+    btnNextWeek.onclick = () => {
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+        render();
+    };
+
+    // Helpers
     function getMonday(d) {
         const date = new Date(d);
         const day = date.getDay();
@@ -387,28 +385,33 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Date(date.setDate(diff));
     }
 
-    function getWeekDays(monday) {
-        const days = [];
-        for (let i = 0; i < 7; i++) {
-            const next = new Date(monday);
-            next.setDate(monday.getDate() + i);
-            days.push(next);
-        }
-        return days;
+    function formatDate(d) {
+        return d.toISOString().split('T')[0];
     }
 
-    function renderWeekLabel() {
-        const monday = currentWeekStart;
-        const friday = new Date(monday);
-        friday.setDate(monday.getDate() + 4);
-        weekLabel.innerText = `Semana del ${monday.getDate()}/${monday.getMonth()+1} al ${friday.getDate()}/${friday.getMonth()+1}, ${monday.getFullYear()}`;
+    function cleanPhone(phone) {
+        return phone.replace(/[^0-9]/g, '');
     }
 
-    function formatDateISO(d) { return d.toISOString().split('T')[0]; }
-    function createDiv(className, html) {
+    function updateWeekLabel() {
+        const endWeek = new Date(currentWeekStart);
+        endWeek.setDate(endWeek.getDate() + 4);
+        weekLabel.innerText = `Semana del ${currentWeekStart.getDate()} al ${endWeek.getDate()} de ${currentWeekStart.toLocaleString('es-ES', { month: 'short' })}, ${currentWeekStart.getFullYear()}`;
+    }
+
+    function createDiv(className, innerHTML) {
         const div = document.createElement('div');
         div.className = className;
-        div.innerHTML = html;
+        div.innerHTML = innerHTML;
         return div;
     }
-});
+})
+function generateGoogleCalendarUrl(title, date, time, details) {
+  const startDateTime = new Date(`${date}T${time}:00`);
+  const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // Bloque de 1 hora
+  
+  const isoStart = startDateTime.toISOString().replace(/-|:|\.\d+/g, '');
+  const isoEnd = endDateTime.toISOString().replace(/-|:|\.\d+/g, '');
+  
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${isoStart}/${isoEnd}&details=${encodeURIComponent(details)}`;
+};
