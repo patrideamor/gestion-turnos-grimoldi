@@ -1,161 +1,58 @@
-<!DOCTYPE html>  
-<html lang="es">  
-<head>  
-    <meta charset="UTF-8">  
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-    <title>Panel Admin - Lic. Gabriela Grimoldi</title>  
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">  
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">  
-    <link rel="stylesheet" href="css/styles.css">  
-</head>  
-<body>  
-    <!-- Modal de Autenticación de Firebase -->
-    <div id="authModal" class="modal-overlay">  
-        <div class="modal-card" style="text-align: center;">  
-            <i class="fa-solid fa-user-shield" style="font-size: 2.5rem; color: var(--color-primary); margin-bottom: 15px;"></i>  
-            <h2>Acceso Profesional</h2>  
-            <p style="font-size: 0.88rem; color: var(--color-text-muted); margin-bottom: 20px;">Ingrese su correo y contraseña institucional</p>  
-            <form id="loginForm">  
-                <div class="form-group">  
-                    <input type="email" id="emailInput" placeholder="correo@ejemplo.com" required style="text-align: center;">  
-                </div>  
-                <div class="form-group" style="margin-bottom: 20px;">  
-                    <input type="password" id="passwordInput" placeholder="••••••••" required style="text-align: center;">  
-                </div>  
-                <button type="submit" class="btn-nav btn-nav-primary" style="width: 100%; justify-content: center;">Iniciar Sesión</button>  
-            </form>  
-        </div>  
-    </div>  
-  
-    <!-- Contenido Protegido del Panel Admin -->
-    <div id="adminContent" class="app-container hidden">  
-        <header class="admin-header">  
-            <div class="brand-info">  
-                <h1>Lic. Gabriela Grimoldi</h1>  
-                <span class="badge-role"><i class="fa-solid fa-user-doctor"></i> Panel de Administración</span>  
-            </div>  
-            <nav class="header-nav">  
-                <button id="btnAllPatients" class="btn-nav btn-nav-outline"><i class="fa-solid fa-address-book"></i> Directorio Pacientes</button>  
-                <button id="btnConfigSchedules" class="btn-nav btn-nav-outline"><i class="fa-solid fa-sliders"></i> Horarios</button>  
-                <button id="btnLogout" class="btn-nav btn-nav-primary"><i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión</button>  
-            </nav>  
-        </header>  
-  
-        <div class="controls-bar">  
-            <div class="date-selector">  
-                <button id="btnPrevWeek" class="btn-arrow"><i class="fa-solid fa-chevron-left"></i></button>  
-                <span id="weekLabel">Semana</span>  
-                <button id="btnNextWeek" class="btn-arrow"><i class="fa-solid fa-chevron-right"></i></button>  
-            </div>  
-            <div class="view-switcher">  
-                <button id="btnViewTable" class="switch-btn active"><i class="fa-solid fa-list-check"></i> Tabla Cronológica</button>  
-                <button id="btnViewCalendar" class="switch-btn"><i class="fa-solid fa-calendar-week"></i> Calendario Semanal</button>  
-            </div>  
-        </div>  
-  
-        <div id="tableView" class="table-card">  
-            <table class="cronology-table">  
-                <thead>  
-                    <tr>  
-                        <th>Fecha / Hora</th>  
-                        <th>Paciente (Clave Tel)</th>  
-                        <th>Estado</th>  
-                        <th style="text-align: right;">Acciones de Gestión</th>  
-                    </tr>  
-                </thead>  
-                <tbody id="tableBody"></tbody>  
-            </table>  
-        </div>  
-  
-        <div id="calendarView" class="grid-calendar hidden"></div>  
-    </div>  
-  
-    <!-- Drawer Ficha del Paciente -->  
-    <div id="patientDrawer" class="drawer-overlay hidden">  
-        <div class="drawer-container">  
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-border); padding-bottom:10px;">  
-                <h3><i class="fa-solid fa-id-card"></i> Ficha del Paciente</h3>  
-                <button id="btnCloseDrawer" style="border:none; background:none; font-size:1.2rem; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>  
-            </div>  
-            <form id="patientForm" style="margin-top: 15px;">  
-                <div class="form-group">  
-                    <label>Teléfono (Clave Relacional)</label>  
-                    <input type="text" id="drawerPhone" readonly style="background: var(--color-surface-subtle);">  
-                </div>  
-                <div class="form-group">  
-                    <label>Nombre Completo</label>  
-                    <input type="text" id="drawerName" required>  
-                </div>  
-                <div class="form-group">  
-                    <label>Edad</label>  
-                    <input type="number" id="drawerAge">  
-                </div>  
-                <div class="form-group">  
-                    <label>Notas Clínicas</label>  
-                    <textarea id="drawerNotes" rows="3"></textarea>  
-                </div>  
-                <button type="submit" class="btn-nav btn-nav-primary" style="margin-top: 15px; width: 100%; justify-content: center;">Guardar y Sincronizar</button>  
-            </form>  
-            <div style="margin-top: 20px;">  
-                <h4 style="font-size:0.9rem; color:var(--color-primary-dark); margin-bottom: 8px;">Historial de Visitas</h4>  
-                <div id="patientHistoryList"></div>  
-            </div>  
-        </div>  
-    </div>  
-  
-    <!-- Modal Directorio de Pacientes -->  
-    <div id="directoryModal" class="modal-overlay hidden">  
-        <div class="modal-card" style="max-width: 600px;">  
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">  
-                <h3><i class="fa-solid fa-address-book"></i> Directorio Centralizado</h3>  
-                <button id="btnCloseDirectory" style="border:none; background:none; font-size:1.2rem; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>  
-            </div>  
-            <div id="directoryList" style="max-height: 350px; overflow-y: auto;"></div>  
-        </div>  
-    </div>  
-  
-    <!-- Modal Turno Manual -->  
-    <div id="manualModal" class="modal-overlay hidden">  
-        <div class="modal-card">  
-            <h3><i class="fa-solid fa-calendar-plus"></i> Agendar Turno Manual</h3>  
-            <form id="manualForm">  
-                <input type="hidden" id="manualDate">  
-                <input type="hidden" id="manualTime">  
-                <p id="manualSlotInfo" style="font-size: 0.88rem; color: var(--color-primary); font-weight: 600; margin-bottom: 10px;"></p>  
-                <div class="form-group">  
-                    <label>Nombre del Paciente</label>  
-                    <input type="text" id="manualName" required>  
-                </div>  
-                <div class="form-group">  
-                    <label>Teléfono Celular</label>  
-                    <input type="tel" id="manualPhone" required>  
-                </div>  
-                <div class="form-group">  
-                    <label>Edad</label>  
-                    <input type="number" id="manualAge">  
-                </div>  
-                <div style="display: flex; gap: 10px; margin-top: 20px;">  
-                    <button type="button" id="btnCancelManual" class="btn-nav btn-nav-outline" style="flex:1;">Cancelar</button>  
-                    <button type="submit" class="btn-nav btn-nav-primary" style="flex:1;">Reservar</button>  
-                </div>  
-            </form>  
-        </div>  
-    </div>  
-  
-    <!-- Modal Configuración Horarios -->  
-    <div id="schedulesModal" class="modal-overlay hidden">  
-        <div class="modal-card">  
-            <h3><i class="fa-solid fa-sliders"></i> Configurar Horarios</h3>  
-            <form id="schedulesForm">  
-                <div id="schedulesInputsContainer" style="max-height: 300px; overflow-y: auto;"></div>  
-                <div style="display: flex; gap: 10px; margin-top: 20px;">  
-                    <button type="button" id="btnCancelSchedules" class="btn-nav btn-nav-outline" style="flex:1;">Cancelar</button>  
-                    <button type="submit" class="btn-nav btn-nav-primary" style="flex:1;">Guardar Horarios</button>  
-                </div>  
-            </form>  
-        </div>  
-    </div>  
-  
-    <script type="module" src="js/admin.js"></script>  
-</body>  
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Panel de Administración | Gestión Grimoldi</title>
+    
+    <!-- SEO TÉCNICO: Evita que los motores de búsqueda indexen este panel privado -->
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Vinculación con la misma hoja de estilos ubicada en la raíz -->
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+    <!-- Encabezado del Panel de Control -->
+    <header class="header-admin">
+        <h1>Panel de Control de Administrador</h1>
+        <p>Gestión y supervisión de turnos agendados.</p>
+    </header>
+
+    <main class="contenedor-admin">
+        <!-- Sección de Filtros Operativos -->
+        <section class="tarjeta-filtros">
+            <label for="filtro-fecha">Filtrar por Fecha:</label>
+            <input type="date" id="filtro-fecha">
+            <button id="btn-refrescar" class="boton-secundario">Actualizar Lista</button>
+        </section>
+
+        <!-- Tabla donde se renderizan dinámicamente los turnos desde la base de datos -->
+        <section class="tarjeta-tabla">
+            <h2>Listado de Turnos</h2>
+            <div class="contenedor-tabla">
+                <table class="tabla-turnos">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Teléfono</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lista-turnos-body">
+                        <!-- El archivo ./js/admin.js inyectará las filas (<tr>) dinámicamente aquí -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Módulo JavaScript exclusivo para la lógica del administrador -->
+    <script type="module" src="./js/firebase-config.js"></script>
+    <script type="module" src="./js/admin.js"></script>
+</body>
 </html>
