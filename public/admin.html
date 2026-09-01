@@ -3,109 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Administración - Lic. Gabriela Grimoldi</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Panel Admin - Lic. Gabriela Grimoldi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <!-- Modal de Login Seguro -->
-    <div id="loginModal" class="modal-overlay">
-        <div class="modal-content" style="max-width: 400px; text-align: center;">
-            <h2>Acceso Restringido</h2>
-            <p style="margin-bottom: 20px; color: var(--text-secondary);">Ingrese la contraseña de administración</p>
+    <!-- MODAL AUTENTICACIÓN ADMIN (PIN 2782) -->
+    <div id="authModal" class="modal-overlay">
+        <div class="modal-card" style="text-align: center;">
+            <i class="fa-solid fa-lock" style="font-size: 2.5rem; color: var(--color-primary); margin-bottom: 15px;"></i>
+            <h2 style="font-size: 1.25rem; margin-bottom: 8px;">Panel de Administración</h2>
+            <p style="font-size: 0.88rem; color: var(--color-text-muted); margin-bottom: 20px;">Ingrese el PIN de acceso profesional</p>
             <form id="loginForm">
-                <div class="form-group">
-                    <input type="password" id="adminPassword" required placeholder="Contraseña">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <input type="password" id="pinInput" placeholder="••••" maxlength="10" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.3em;" required autofocus autocomplete="current-password">
                 </div>
-                <button type="submit" class="btn-primary">Ingresar</button>
+                <button type="submit" class="btn-nav btn-nav-primary" style="width: 100%; justify-content: center; padding: 12px;">Ingresar</button>
             </form>
         </div>
     </div>
 
-    <header>
-        <h1>Panel de Gestión | Lic. Gabriela Grimoldi</h1>
-        <div style="display: flex; gap: 10px;">
-            <button id="btnDirectory" class="nav-btn" style="background: var(--success);">Directorio Fichas</button>
-            <a href="index.html" class="nav-btn">Volver al Turnero</a>
-        </div>
-    </header>
+    <!-- CONTENIDO ADMIN -->
+    <div id="adminContent" class="app-container hidden">
+        <header class="admin-header">
+            <div class="brand-info">
+                <h1>Lic. Gabriela Grimoldi</h1>
+                <span class="badge-role"><i class="fa-solid fa-user-doctor"></i> Panel de Administración</span>
+            </div>
+            <nav class="header-nav">
+                <button id="btnConfigSchedules" class="btn-nav btn-nav-outline"><i class="fa-solid fa-sliders"></i> Horarios</button>
+                <a href="index.html" class="btn-nav btn-nav-primary"><i class="fa-solid fa-arrow-right-from-bracket"></i> Turnero Público</a>
+            </nav>
+        </header>
 
-    <div class="container">
-        <!-- Calendario Semanal -->
-        <div class="card">
-            <div class="calendar-controls">
-                <button id="prevWeek" class="nav-btn" style="padding: 6px 12px;">← Semana Anterior</button>
-                <h3 id="currentWeekLabel" style="margin: 0;">Semana Actual</h3>
-                <button id="nextWeek" class="nav-btn" style="padding: 6px 12px;">Semana Siguiente →</button>
+        <div class="controls-bar">
+            <div class="date-selector">
+                <button id="btnPrevWeek" class="btn-arrow"><i class="fa-solid fa-chevron-left"></i></button>
+                <span id="weekLabel">Semana</span>
+                <button id="btnNextWeek" class="btn-arrow"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
-            <div class="week-grid" id="weekGridContainer">
-                <!-- Generado dinámicamente -->
+            <div class="view-switcher">
+                <button id="btnViewTable" class="switch-btn active"><i class="fa-solid fa-list-check"></i> Tabla Cronológica</button>
+                <button id="btnViewCalendar" class="switch-btn"><i class="fa-solid fa-calendar-week"></i> Calendario Semanal</button>
             </div>
         </div>
 
-        <!-- Tabla Cronológica de Turnos -->
-        <div class="card">
-            <h3>Listado Cronológico de Turnos</h3>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Fecha y Hora</th>
-                            <th>Paciente</th>
-                            <th>Teléfono</th>
-                            <th>Estado</th>
-                            <th>Acciones (Ficha / WhatsApp / Cancelar / Eliminar)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="appointmentsTableBody">
-                        <!-- Generado dinámicamente -->
-                    </tbody>
-                </table>
-            </div>
+        <div id="tableView" class="table-card">
+            <table class="cronology-table">
+                <thead>
+                    <tr>
+                        <th>Fecha / Hora</th>
+                        <th>Paciente (Teléfono)</th>
+                        <th>Estado</th>
+                        <th style="text-align: right;">Acciones de Gestión</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
         </div>
+
+        <div id="calendarView" class="grid-calendar hidden"></div>
     </div>
 
-    <!-- Modal de Ficha de Paciente -->
-    <div id="patientModal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3 id="modalPatientTitle">Ficha Clínica / Notas</h3>
-            <form id="patientForm">
+    <!-- FICHA CLÍNICA DRAWER -->
+    <div id="patientDrawer" class="drawer-overlay hidden">
+        <div class="drawer-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid var(--color-surface-subtle);">
+                <h3><i class="fa-solid fa-id-card"></i> Ficha del Paciente</h3>
+                <button id="btnCloseDrawer" style="border:none; background:none; font-size:1.2rem; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="patientForm" style="margin-top: 15px;">
                 <div class="form-group">
-                    <label>Nombre y Apellido</label>
-                    <input type="text" id="modalPatientName" required>
+                    <label>Teléfono (Clave Primaria Relacional)</label>
+                    <input type="text" id="drawerPhone" readonly style="background: var(--color-bg);">
                 </div>
                 <div class="form-group">
-                    <label>Teléfono (Clave)</label>
-                    <input type="text" id="modalPatientPhone" readonly style="background: #f1f5f9;">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="drawerName" required>
                 </div>
                 <div class="form-group">
                     <label>Edad</label>
-                    <input type="number" id="modalPatientAge">
+                    <input type="number" id="drawerAge">
                 </div>
                 <div class="form-group">
-                    <label>Notas Clínicas / Historial de Visitas</label>
-                    <textarea id="modalPatientNotes" rows="4" placeholder="Observaciones psicopedagógicas..."></textarea>
+                    <label>Notas Clínicas / Observaciones</label>
+                    <textarea id="drawerNotes" rows="3"></textarea>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button type="submit" class="btn-primary">Guardar Cambios</button>
-                    <button type="button" id="closePatientModal" class="nav-btn" style="background: var(--text-secondary); width: 100%;">Cerrar</button>
+                <button type="submit" class="btn-nav btn-nav-primary" style="margin-top: 15px; width: 100%; justify-content: center;">Guardar Cambios Relacionales</button>
+            </form>
+            <div style="margin-top: 25px;">
+                <h4 style="font-size:0.9rem; color:var(--color-primary); margin-bottom: 10px;">Historial Completo de Turnos</h4>
+                <div id="patientHistoryList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CARGA MANUAL -->
+    <div id="manualAppointmentModal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-calendar-plus"></i> Agendar Turno Manual</h3>
+            <form id="manualAppointmentForm">
+                <input type="hidden" id="manualDate">
+                <input type="hidden" id="manualTime">
+                <p id="manualSlotInfo" style="font-size: 0.88rem; color: var(--color-primary); font-weight: 600; margin-bottom: 10px;"></p>
+                <div class="form-group">
+                    <label>Nombre del Paciente</label>
+                    <input type="text" id="manualName" required>
+                </div>
+                <div class="form-group">
+                    <label>Teléfono (Clave)</label>
+                    <input type="text" id="manualPhone" required>
+                </div>
+                <div class="form-group">
+                    <label>Edad</label>
+                    <input type="number" id="manualAge">
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" id="btnCancelManual" class="btn-nav btn-nav-outline" style="flex:1; justify-content:center;">Cancelar</button>
+                    <button type="submit" class="btn-nav btn-nav-primary" style="flex:1; justify-content:center;">Reservar</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal Directorio General de Pacientes -->
-    <div id="directoryModal" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3>Directorio Centralizado de Pacientes</h3>
-                <button type="button" id="closeDirectoryModal" class="nav-btn" style="background: var(--text-secondary);">Cerrar</button>
-            </div>
-            <div id="directoryContent">
-                <!-- Listado completo de pacientes -->
-            </div>
+    <!-- MODAL CONFIGURACIÓN DE HORARIOS -->
+    <div id="schedulesModal" class="modal-overlay hidden">
+        <div class="modal-card" style="max-width: 550px;">
+            <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-sliders"></i> Configurar Bloques Horarios</h3>
+            <form id="schedulesForm">
+                <div id="schedulesInputsContainer" style="max-height: 350px; overflow-y: auto; padding-right: 5px;"></div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" id="btnCancelSchedules" class="btn-nav btn-nav-outline" style="flex:1; justify-content:center;">Cancelar</button>
+                    <button type="submit" class="btn-nav btn-nav-primary" style="flex:1; justify-content:center;">Guardar Horarios</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <script src="admin.js"></script>
+    <!-- FIREBASE SDK v10 & LÓGICA FRONTEND -->
+    <script type="module" src="js/admin.js"></script>
 </body>
 </html>
