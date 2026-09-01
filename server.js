@@ -6,7 +6,7 @@ const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -24,9 +24,13 @@ app.use('/auth', authRoutes);
 app.use('/api', apiRoutes);
 
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor activo corriendo en el puerto ${PORT}`);
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor activo corriendo en http://localhost:${PORT}`);
 });
